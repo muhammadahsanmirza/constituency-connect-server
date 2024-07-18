@@ -1,8 +1,9 @@
  const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-
-dotenv.config();
-
+require('dotenv').config();
+/**
+ * Asynchronously connects to the MongoDB database using the environment variables for connection string and database name.
+ *
+ */
 const connectDB = async () => {
   try {
     await mongoose.connect(`${process.env.DB_CONNECTION_STRING}${process.env.DB_NAME}`);
