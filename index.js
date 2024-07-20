@@ -19,8 +19,8 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
-
-
+const constituentRoutes = require('./routes/constituent.routes.js');
+app.use('/api/constituent', constituentRoutes);
 
 //Server Start
 

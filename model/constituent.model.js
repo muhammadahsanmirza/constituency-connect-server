@@ -3,7 +3,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-// Define the constituent schema
 const constituentSchema = new mongoose.Schema(
   {
     name: {
@@ -28,13 +27,13 @@ const constituentSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters long'],
-      validate: {
-        validator: function (v) {
-          // Check for at least one number, one uppercase letter, and one lowercase letter
-          return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(v);
-        },
-        message: 'Password must contain at least one number, one uppercase letter, and one lowercase letter',
-      },
+      // validate: {
+      //   validator: function (v) {
+      //     // Check for at least one number, one uppercase letter, and one lowercase letter
+      //     return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(v);
+      //   },
+      //   message: 'Password must contain at least one number, one uppercase letter, and one lowercase letter',
+      // },
     },
     phoneNumber: {
       type: String,
