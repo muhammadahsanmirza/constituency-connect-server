@@ -20,7 +20,7 @@ app.use(cors());
 
 // Routes
 const constituentRoutes = require('./routes/constituent.routes.js');
-app.use('/api/constituent', constituentRoutes);
+app.use('/api/v1/constituent', constituentRoutes);
 
 //Server Start
 
