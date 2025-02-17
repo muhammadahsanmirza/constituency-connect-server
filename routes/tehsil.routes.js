@@ -3,9 +3,11 @@ const router = express.Router();
 const tehsilController = require('../controller/tehsil.controller');
 
 // Define routes for Tehsil
-
 // Get all tehsils
 router.get('/', tehsilController.getTehsils);
+
+// Get all tehsils by district ID
+router.get('/district/:districtId', tehsilController.getTehsilsByDistrict);
 
 // Get a single tehsil by ID
 router.get('/:id', tehsilController.getTehsilById);

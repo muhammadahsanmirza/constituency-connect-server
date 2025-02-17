@@ -6,6 +6,9 @@ const constituencyController = require('../controller/constituency.controller');
 // Get all constituencies
 router.get('/', constituencyController.getConstituencies);
 
+// Get all constituencies by tehsil and city IDs
+router.get('/tehsil/:tehsilId/city/:cityId', constituencyController.getConstituenciesByTehsilAndCity);
+
 // Get a single constituency by ID
 router.get('/:id', constituencyController.getConstituencyById);
 

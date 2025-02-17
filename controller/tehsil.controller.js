@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Tehsil = require('../model/tehsil.model');
 
 // Get all tehsils
@@ -57,5 +58,28 @@ exports.deleteTehsil = async (req, res) => {
     res.status(200).json({ message: 'Tehsil deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting tehsil', error: error.message });
+  }
+};
+
+// Get all tehsils by district ID
+exports.getTehsilsByDistrict = async (req, res) => {
+  try {
+    const { districtId } = req.params;
+
+    // Validate if the provided districtId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(districtId)) {
+      return res.status(400).json({ message: 'Invalid district ID' });
+    }
+
+    // Find all tehsils that reference the given district ID
+    const tehsils = await Tehsil.find({ district: districtId }).populate('district');
+
+    if (tehsils.length === 0) {
+      return res.status(404).json({ message: 'No tehsils found for the given district ID' });
+    }
+
+    res.status(200).json(tehsils);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching tehsils by district', error: error.message });
   }
 };

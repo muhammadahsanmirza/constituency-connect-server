@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const District = require('../model/district.model');
 
 // Get all districts
@@ -57,5 +58,28 @@ exports.deleteDistrict = async (req, res) => {
     res.status(200).json({ message: 'District deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting district', error: error.message });
+  }
+};
+
+// Get all districts by province ID
+exports.getDistrictsByProvince = async (req, res) => {
+  try {
+    const { provinceId } = req.params;
+
+    // Validate if the provided provinceId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(provinceId)) {
+      return res.status(400).json({ message: 'Invalid province ID' });
+    }
+
+    // Find all districts that reference the given province ID
+    const districts = await District.find({ province: provinceId }).populate('province');
+
+    if (districts.length === 0) {
+      return res.status(404).json({ message: 'No districts found for the given province ID' });
+    }
+
+    res.status(200).json(districts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching districts by province', error: error.message });
   }
 };
