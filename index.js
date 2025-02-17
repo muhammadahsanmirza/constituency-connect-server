@@ -18,10 +18,39 @@ connectDB();
 app.use(express.json());
 app.use(cors());
 
-// Routes
-const constituentRoutes = require('./routes/constituent.routes.js');
-app.use('/api/v1/constituent', constituentRoutes);
+const mongoose = require('mongoose');
+// const insertProvinces = require('./scripts/insertProvinces');
+// const insertDistricts = require('./scripts/insertDistricts');
+// const insertTehsils = require('./scripts/insertTehsils');
+// const insertCities = require('./scripts/insertCities');
+// const insertConstituencies = require('./scripts/insertConstituencies');
+mongoose.connection.on('connected', () => {
+  console.log('Connected to MongoDB');
+  // insertProvinces();
+  // insertDistricts();
+  // insertTehsils();
+  // insertCities();
+  // insertConstituencies();
+});
 
+// Routes
+// const constituentRoutes = require('./routes/constituent.routes.js');
+// app.use('/api/v1/constituent', constituentRoutes);
+
+const provinceRoutes = require('./routes/province.routes');
+app.use('/api/v1/province', provinceRoutes);
+
+const districtRoutes = require('./routes/district.routes');
+app.use('/api/v1/district', districtRoutes);
+
+const tehsilRoutes = require('./routes/tehsil.routes');
+app.use('/api/v1/tehsil', tehsilRoutes);
+
+const cityRoutes = require('./routes/city.routes');
+app.use('/api/v1/city', cityRoutes);
+
+const constituencyRoutes = require('./routes/constituency.routes');
+app.use('/api/v1/constituency', constituencyRoutes);
 //Server Start
 
 app.listen(PORT, () => {
