@@ -55,7 +55,8 @@ app.use('/api/v1/constituency', constituencyRoutes);
 const userRoutes = require('./routes/user.routes');
 app.use('/api/v1/user', userRoutes);
 
-
+const complaintRoutes = require('./routes/complaint.routes');
+app.use('/api/v1/complaint', complaintRoutes);
 
 
 
