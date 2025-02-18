@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-// Define the schema
 const userSchema = new Schema({
   name: {
     type: String,
@@ -11,6 +10,7 @@ const userSchema = new Schema({
   cnic: {
     type: String,
     required: [true, 'CNIC is required'],
+    unique: true,
     match: [/^\d{5}-\d{7}-\d$/, 'CNIC format must be *****-*******-*'],
   },
   mobile: {
@@ -21,6 +21,7 @@ const userSchema = new Schema({
   email: {
     type: String,
     required: [true, 'Email is required'],
+    unique: true,
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Invalid email address'],
   },
   password: {
@@ -31,47 +32,62 @@ const userSchema = new Schema({
   },
   role: {
     type: String,
+    enum: ['representative', 'constituent'],
     required: [true, 'Role is required'],
-    enum: ['admin', 'user', 'moderator'],
   },
   gender: {
     type: String,
     required: [true, 'Gender is required'],
-    enum: ['male', 'female', 'other'],
   },
   dateOfBirth: {
     type: Date,
     required: [true, 'Date of Birth is required'],
     validate: {
       validator: function(value) {
-        return value <= new Date();
+        const currentDate = new Date();
+        const dob = new Date(value);
+        currentDate.setHours(0, 0, 0, 0);
+        dob.setHours(0, 0, 0, 0);
+        return dob <= currentDate;
       },
       message: 'Date of Birth cannot be in the future',
     },
   },
   province: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Province',
     required: [true, 'Province is required'],
   },
   district: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'District',
     required: [true, 'District is required'],
   },
   tehsil: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Tehsil',
     required: [true, 'Tehsil is required'],
   },
+  tehsil: {
+    type: Schema.Types.ObjectId,
+    ref: 'City',
+    required: [true, 'City is required'],
+  },
   constituency: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Constituency',
     required: [true, 'Constituency is required'],
   },
   address: {
     type: String,
     required: [true, 'Address is required'],
   },
+  representative: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
 });
 
-// Create the model
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

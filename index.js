@@ -51,6 +51,17 @@ app.use('/api/v1/city', cityRoutes);
 
 const constituencyRoutes = require('./routes/constituency.routes');
 app.use('/api/v1/constituency', constituencyRoutes);
+
+const userRoutes = require('./routes/user.routes');
+app.use('/api/v1/user', userRoutes);
+
+
+
+
+
+
+
+
 //Server Start
 
 app.listen(PORT, () => {
