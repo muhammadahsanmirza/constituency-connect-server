@@ -1,7 +1,37 @@
 const mongoose = require('mongoose');
 const Tehsil = require('../model/tehsil.model');
 
-// Get all tehsils
+/**
+ * @swagger
+ * /api/v1/tehsil:
+ *   get:
+ *     summary: Get all tehsils
+ *     tags: [Tehsil]
+ *     description: Retrieve a list of all tehsils. Accessible by both constituents and representatives.
+ *     responses:
+ *       200:
+ *         description: A list of tehsils
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   district:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *       500:
+ *         description: Server error
+ */
 exports.getTehsils = async (req, res) => {
   try {
     const tehsils = await Tehsil.find().populate('district');
@@ -11,7 +41,44 @@ exports.getTehsils = async (req, res) => {
   }
 };
 
-// Get a single tehsil by ID
+/**
+ * @swagger
+ * /api/v1/tehsil/{id}:
+ *   get:
+ *     summary: Get a tehsil by ID
+ *     tags: [Tehsil]
+ *     description: Retrieve a single tehsil by its ID. Accessible by both constituents and representatives.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The tehsil ID
+ *     responses:
+ *       200:
+ *         description: A tehsil object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 district:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *       404:
+ *         description: Tehsil not found
+ *       500:
+ *         description: Server error
+ */
 exports.getTehsilById = async (req, res) => {
   try {
     const tehsil = await Tehsil.findById(req.params.id).populate('district');
@@ -24,7 +91,36 @@ exports.getTehsilById = async (req, res) => {
   }
 };
 
-// Create a new tehsil
+/**
+ * @swagger
+ * /api/v1/tehsil:
+ *   post:
+ *     summary: Create a new tehsil
+ *     tags: [Tehsil]
+ *     description: Create a new tehsil. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - district
+ *             properties:
+ *               name:
+ *                 type: string
+ *               district:
+ *                 type: string
+ *                 description: District ID
+ *     responses:
+ *       201:
+ *         description: Tehsil created successfully
+ *       500:
+ *         description: Server error
+ */
 exports.createTehsil = async (req, res) => {
   try {
     const newTehsil = new Tehsil(req.body);
@@ -35,7 +131,42 @@ exports.createTehsil = async (req, res) => {
   }
 };
 
-// Update a tehsil by ID
+/**
+ * @swagger
+ * /api/v1/tehsil/{id}:
+ *   put:
+ *     summary: Update a tehsil
+ *     tags: [Tehsil]
+ *     description: Update an existing tehsil. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The tehsil ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               district:
+ *                 type: string
+ *                 description: District ID
+ *     responses:
+ *       200:
+ *         description: Tehsil updated successfully
+ *       404:
+ *         description: Tehsil not found
+ *       500:
+ *         description: Server error
+ */
 exports.updateTehsil = async (req, res) => {
   try {
     const updatedTehsil = await Tehsil.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -48,7 +179,30 @@ exports.updateTehsil = async (req, res) => {
   }
 };
 
-// Delete a tehsil by ID
+/**
+ * @swagger
+ * /api/v1/tehsil/{id}:
+ *   delete:
+ *     summary: Delete a tehsil
+ *     tags: [Tehsil]
+ *     description: Delete a tehsil. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The tehsil ID
+ *     responses:
+ *       200:
+ *         description: Tehsil deleted successfully
+ *       404:
+ *         description: Tehsil not found
+ *       500:
+ *         description: Server error
+ */
 exports.deleteTehsil = async (req, res) => {
   try {
     const deletedTehsil = await Tehsil.findByIdAndDelete(req.params.id);
@@ -61,7 +215,48 @@ exports.deleteTehsil = async (req, res) => {
   }
 };
 
-// Get all tehsils by district ID
+/**
+ * @swagger
+ * /api/v1/tehsil/district/{districtId}:
+ *   get:
+ *     summary: Get tehsils by district ID
+ *     tags: [Tehsil]
+ *     description: Retrieve all tehsils for a specific district. Accessible by both constituents and representatives.
+ *     parameters:
+ *       - in: path
+ *         name: districtId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The district ID
+ *     responses:
+ *       200:
+ *         description: A list of tehsils in the district
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   district:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *       400:
+ *         description: Invalid district ID
+ *       404:
+ *         description: No tehsils found for the district
+ *       500:
+ *         description: Server error
+ */
 exports.getTehsilsByDistrict = async (req, res) => {
   try {
     const { districtId } = req.params;

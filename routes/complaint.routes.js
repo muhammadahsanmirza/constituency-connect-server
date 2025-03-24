@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const complaintController = require('../controller/complaint.controller');
-const upload = require('../middleware/upload.middleware');
-const { verifyAccessToken } = require('../middleware/auth.middleware');
+const upload = require('../middlewares/upload.middleware');
+const { verifyAccessToken } = require('../middlewares/auth.middleware');
 
 // Define routes for Complaint
 

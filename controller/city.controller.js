@@ -1,7 +1,37 @@
 const mongoose = require('mongoose');
 const City = require('../model/city.model');
 
-// Get all cities
+/**
+ * @swagger
+ * /api/v1/city:
+ *   get:
+ *     summary: Get all cities
+ *     tags: [City]
+ *     description: Retrieve a list of all cities. Accessible by both constituents and representatives.
+ *     responses:
+ *       200:
+ *         description: A list of cities
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   tehsil:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *       500:
+ *         description: Server error
+ */
 exports.getCities = async (req, res) => {
   try {
     const cities = await City.find().populate('tehsil');
@@ -11,7 +41,44 @@ exports.getCities = async (req, res) => {
   }
 };
 
-// Get a single city by ID
+/**
+ * @swagger
+ * /api/v1/city/{id}:
+ *   get:
+ *     summary: Get a city by ID
+ *     tags: [City]
+ *     description: Retrieve a single city by its ID. Accessible by both constituents and representatives.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The city ID
+ *     responses:
+ *       200:
+ *         description: A city object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 tehsil:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *       404:
+ *         description: City not found
+ *       500:
+ *         description: Server error
+ */
 exports.getCityById = async (req, res) => {
   try {
     const city = await City.findById(req.params.id).populate('tehsil');
@@ -24,7 +91,36 @@ exports.getCityById = async (req, res) => {
   }
 };
 
-// Create a new city
+/**
+ * @swagger
+ * /api/v1/city:
+ *   post:
+ *     summary: Create a new city
+ *     tags: [City]
+ *     description: Create a new city. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - tehsil
+ *             properties:
+ *               name:
+ *                 type: string
+ *               tehsil:
+ *                 type: string
+ *                 description: Tehsil ID
+ *     responses:
+ *       201:
+ *         description: City created successfully
+ *       500:
+ *         description: Server error
+ */
 exports.createCity = async (req, res) => {
   try {
     const newCity = new City(req.body);
@@ -35,7 +131,42 @@ exports.createCity = async (req, res) => {
   }
 };
 
-// Update a city by ID
+/**
+ * @swagger
+ * /api/v1/city/{id}:
+ *   put:
+ *     summary: Update a city
+ *     tags: [City]
+ *     description: Update an existing city. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The city ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               tehsil:
+ *                 type: string
+ *                 description: Tehsil ID
+ *     responses:
+ *       200:
+ *         description: City updated successfully
+ *       404:
+ *         description: City not found
+ *       500:
+ *         description: Server error
+ */
 exports.updateCity = async (req, res) => {
   try {
     const updatedCity = await City.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -48,7 +179,30 @@ exports.updateCity = async (req, res) => {
   }
 };
 
-// Delete a city by ID
+/**
+ * @swagger
+ * /api/v1/city/{id}:
+ *   delete:
+ *     summary: Delete a city
+ *     tags: [City]
+ *     description: Delete a city. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The city ID
+ *     responses:
+ *       200:
+ *         description: City deleted successfully
+ *       404:
+ *         description: City not found
+ *       500:
+ *         description: Server error
+ */
 exports.deleteCity = async (req, res) => {
   try {
     const deletedCity = await City.findByIdAndDelete(req.params.id);
@@ -61,7 +215,48 @@ exports.deleteCity = async (req, res) => {
   }
 };
 
-// Get all cities by tehsil ID
+/**
+ * @swagger
+ * /api/v1/city/tehsil/{tehsilId}:
+ *   get:
+ *     summary: Get cities by tehsil ID
+ *     tags: [City]
+ *     description: Retrieve all cities for a specific tehsil. Accessible by both constituents and representatives.
+ *     parameters:
+ *       - in: path
+ *         name: tehsilId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The tehsil ID
+ *     responses:
+ *       200:
+ *         description: A list of cities in the tehsil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   tehsil:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *       400:
+ *         description: Invalid tehsil ID
+ *       404:
+ *         description: No cities found for the tehsil
+ *       500:
+ *         description: Server error
+ */
 exports.getCitiesByTehsil = async (req, res) => {
   try {
     const { tehsilId } = req.params;

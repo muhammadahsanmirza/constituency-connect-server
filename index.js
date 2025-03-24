@@ -58,6 +58,17 @@ app.use('/api/v1/user', userRoutes);
 const complaintRoutes = require('./routes/complaint.routes');
 app.use('/api/v1/complaint', complaintRoutes);
 
+const campaignRoutes = require('./routes/campaign.routes');
+app.use('/api/v1/campaign', campaignRoutes);
+
+
+
+// Add this near the top with other imports
+const { swaggerUi, specs } = require('./config/swagger');
+
+// Add this with your other middleware
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 
 
 
