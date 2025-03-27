@@ -118,6 +118,7 @@ exports.register = async (req, res) => {
     await newUser.save();
 
     // Generate JWT tokens with additional fields
+    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
     const accessToken = jwt.sign(
       { 
         userId: newUser._id, 
@@ -126,10 +127,11 @@ exports.register = async (req, res) => {
         role: newUser.role,
         constituency: newUser.constituency 
       }, 
-      process.env.JWT_ACCESS_SECRET, 
+      process.env.JWT_SECRET, 
       { expiresIn: '1d' }
     );
     
+    // Using JWT_REFRESH_SECRET directly
     const refreshToken = jwt.sign(
       { 
         userId: newUser._id, 
@@ -210,6 +212,7 @@ exports.login = async (req, res) => {
       return responseHandler.error(res, 'Invalid email or password');
     }
 
+    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
     const accessToken = jwt.sign(
       { 
         userId: user._id, 
@@ -218,7 +221,7 @@ exports.login = async (req, res) => {
         role: user.role,
         constituency: user.constituency 
       }, 
-      process.env.JWT_ACCESS_SECRET, 
+      process.env.JWT_SECRET, 
       { expiresIn: '1d' }
     );
     
@@ -292,6 +295,7 @@ exports.refreshToken = async (req, res) => {
     }
     
     // Generate new access token
+    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
     const accessToken = jwt.sign(
       { 
         userId: user._id, 
@@ -300,7 +304,7 @@ exports.refreshToken = async (req, res) => {
         role: user.role,
         constituency: user.constituency 
       }, 
-      process.env.JWT_ACCESS_SECRET, 
+      process.env.JWT_SECRET, 
       { expiresIn: '1d' }
     );
     

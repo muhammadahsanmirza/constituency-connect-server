@@ -58,8 +58,14 @@ app.use('/api/v1/user', userRoutes);
 const complaintRoutes = require('./routes/complaint.routes');
 app.use('/api/v1/complaint', complaintRoutes);
 
+// Add this with your other route imports
 const campaignRoutes = require('./routes/campaign.routes');
 app.use('/api/v1/campaign', campaignRoutes);
+
+const path = require('path');
+
+// Make sure you have this line to serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 

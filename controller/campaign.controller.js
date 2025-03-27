@@ -1,4 +1,5 @@
 const Campaign = require('../model/campaign.model');
+const User = require('../model/user.model');
 const responseHandler = require('../utils/responseHandler');
 const fs = require('fs');
 const path = require('path');
@@ -6,13 +7,16 @@ const path = require('path');
 // Create a new campaign
 exports.createCampaign = async (req, res) => {
   try {
+    // Debug: Log the user object to see if it's properly set by the middleware
+    console.log('User from token:', req.user);
+    
     const { title, description } = req.body;
     const representative = req.user.userId; // Get the representative ID from the authenticated user
 
     // Create a new campaign object
     const newCampaign = new Campaign({
       title,
-      description,
+      description, // Store HTML content as is
       representative
     });
 
@@ -26,6 +30,7 @@ exports.createCampaign = async (req, res) => {
 
     responseHandler.success(res, 'Campaign created successfully', newCampaign);
   } catch (error) {
+    console.error('Campaign creation error:', error);
     responseHandler.serverError(res, error.message);
   }
 };
@@ -43,10 +48,33 @@ exports.getCampaigns = async (req, res) => {
 // Get campaigns by representative ID
 exports.getCampaignsByRepresentative = async (req, res) => {
   try {
-    const representativeId = req.params.representativeId || req.user.userId;
+    const representativeId = req.params.representativeId;
     const campaigns = await Campaign.find({ representative: representativeId }).populate('representative', 'name email');
     
     responseHandler.success(res, 'Campaigns retrieved successfully', campaigns);
+  } catch (error) {
+    responseHandler.serverError(res, error.message);
+  }
+};
+
+// Get campaigns by constituent's representative
+exports.getCampaignsByMyRepresentative = async (req, res) => {
+  try {
+    // Check if user is a constituent
+    if (req.user.role !== 'constituent') {
+      return responseHandler.forbidden(res, 'Only constituents can access this endpoint');
+    }
+    
+    // Get the constituent's representative ID from user object
+    const user = await User.findById(req.user.userId);
+    if (!user || !user.representative) {
+      return responseHandler.notFound(res, 'No representative found for this constituent');
+    }
+    
+    // Get campaigns by the representative
+    const campaigns = await Campaign.find({ representative: user.representative }).populate('representative', 'name email');
+    
+    responseHandler.success(res, 'Representative campaigns retrieved successfully', campaigns);
   } catch (error) {
     responseHandler.serverError(res, error.message);
   }

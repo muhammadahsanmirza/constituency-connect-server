@@ -5,20 +5,19 @@ const campaignSchema = new Schema({
   title: {
     type: String,
     required: true,
-    trim: true
   },
   description: {
     type: String,
-    required: true
-  },
-  imagePath: {
-    type: String
+    required: true,
   },
   representative: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
+  imagePath: {
+    type: String,
+  }
 }, {
   timestamps: true
 });

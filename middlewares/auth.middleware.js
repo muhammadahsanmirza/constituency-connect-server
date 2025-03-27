@@ -4,19 +4,24 @@ const responseHandler = require('../utils/responseHandler');
 // Verify access token middleware
 exports.verifyAccessToken = (req, res, next) => {
   try {
+    console.log('Auth headers:', req.headers);
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return responseHandler.unauthorized(res, 'Access token is required');
     }
 
     const token = authHeader.split(' ')[1];
+    console.log('Token being verified:', token.substring(0, 20) + '...');
+    
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    console.log('Token decoded successfully:', decoded);
     
     // Add user info to request object
     req.user = decoded;
     
     next();
   } catch (error) {
+    console.error('Token verification error:', error);
     if (error.name === 'TokenExpiredError') {
       return responseHandler.unauthorized(res, 'Access token has expired');
     }
