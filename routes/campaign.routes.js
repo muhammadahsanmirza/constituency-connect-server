@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const campaignController = require('../controller/campaign.controller');
-const { verifyAccessToken, isRepresentative } = require('../middlewares/auth.middleware');
-const upload = require('../middlewares/upload.middleware');
+const { verifyAccessToken } = require('../middlewares/auth.middleware');
+const { upload } = require('../middlewares/upload.middleware');
 
 // Add this logging middleware at the very top
 router.use((req, res, next) => {
@@ -93,6 +93,7 @@ router.get('/test', (req, res) => {
  *         description: Server error
  */
 // Example for the create campaign route
+// Fix the upload middleware usage
 router.post('/', verifyAccessToken, upload.single('image'), (req, res) => {
   campaignController.createCampaign(req, res);
 });
