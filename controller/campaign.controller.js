@@ -7,28 +7,36 @@ const path = require('path');
 // Create a new campaign
 exports.createCampaign = async (req, res) => {
   try {
-    // Debug: Log the user object to see if it's properly set by the middleware
+    console.log('Full request headers:', req.headers);
+    console.log('Authorization header:', req.headers.authorization);
     console.log('User from token:', req.user);
     
     const { title, description } = req.body;
-    const representative = req.user.userId; // Get the representative ID from the authenticated user
+    
+    // Check if we have a representative role
+    if (req.user && req.user.role === 'representative') {
+      console.log('Representative confirmed, creating campaign with ID:', req.user.userId);
+      
+      // Create a new campaign object
+      const newCampaign = new Campaign({
+        title,
+        description,
+        representative: req.user.userId
+      });
 
-    // Create a new campaign object
-    const newCampaign = new Campaign({
-      title,
-      description, // Store HTML content as is
-      representative
-    });
+      // Handle image upload if provided
+      if (req.file) {
+        newCampaign.imagePath = req.file.path;
+      }
 
-    // Handle image upload if provided
-    if (req.file) {
-      newCampaign.imagePath = req.file.path;
+      // Save the campaign to the database
+      await newCampaign.save();
+
+      return responseHandler.success(res, 'Campaign created successfully', newCampaign);
+    } else {
+      console.log('User role is not representative:', req.user ? req.user.role : 'undefined');
+      return responseHandler.forbidden(res, 'Only representatives can create campaigns');
     }
-
-    // Save the campaign to the database
-    await newCampaign.save();
-
-    responseHandler.success(res, 'Campaign created successfully', newCampaign);
   } catch (error) {
     console.error('Campaign creation error:', error);
     responseHandler.serverError(res, error.message);
@@ -49,10 +57,20 @@ exports.getCampaigns = async (req, res) => {
 exports.getCampaignsByRepresentative = async (req, res) => {
   try {
     const representativeId = req.params.representativeId;
-    const campaigns = await Campaign.find({ representative: representativeId }).populate('representative', 'name email');
+    
+    console.log('Fetching campaigns for representative ID:', representativeId);
+    
+    // Find all campaigns by this representative
+    const campaigns = await Campaign.find({ representative: representativeId })
+      .sort({ createdAt: -1 });
+    
+    if (campaigns.length === 0) {
+      return responseHandler.notFound(res, 'No campaigns found for this representative');
+    }
     
     responseHandler.success(res, 'Campaigns retrieved successfully', campaigns);
   } catch (error) {
+    console.error('Error fetching representative campaigns:', error);
     responseHandler.serverError(res, error.message);
   }
 };
@@ -166,6 +184,33 @@ exports.deleteCampaign = async (req, res) => {
     
     responseHandler.success(res, 'Campaign deleted successfully');
   } catch (error) {
+    responseHandler.serverError(res, error.message);
+  }
+};
+
+// Get campaigns by constituent's representative from JWT
+exports.getCampaignsByMyRepresentativeFromJWT = async (req, res) => {
+  try {
+    // Get representative ID from JWT
+    const representativeId = req.user.representative;
+    
+    if (!representativeId) {
+      return responseHandler.error(res, 'Representative information not found in your profile');
+    }
+    
+    console.log('Fetching campaigns for representative ID from JWT:', representativeId);
+    
+    // Find all campaigns by this representative
+    const campaigns = await Campaign.find({ representative: representativeId })
+      .sort({ createdAt: -1 });
+    
+    if (campaigns.length === 0) {
+      return responseHandler.notFound(res, 'No campaigns found for your representative');
+    }
+    
+    responseHandler.success(res, 'Campaigns retrieved successfully', campaigns);
+  } catch (error) {
+    console.error('Error fetching representative campaigns:', error);
     responseHandler.serverError(res, error.message);
   }
 };

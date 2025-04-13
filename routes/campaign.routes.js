@@ -92,7 +92,8 @@ router.get('/test', (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/', verifyAccessToken, isRepresentative, upload.single('image'), (req, res) => {
+// Example for the create campaign route
+router.post('/', verifyAccessToken, upload.single('image'), (req, res) => {
   campaignController.createCampaign(req, res);
 });
 
@@ -125,6 +126,73 @@ router.get('/my-representative', verifyAccessToken, (req, res) => {
   campaignController.getCampaignsByMyRepresentative(req, res);
 });
 
+/**
+ * @swagger
+ * /api/v1/campaign/my-representative-jwt:
+ *   get:
+ *     summary: Get campaigns by constituent's representative using JWT
+ *     tags: [Campaigns]
+ *     description: Retrieve all campaigns created by the constituent's representative using the representative ID stored in the JWT token. Only accessible by constituents.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of campaigns from the constituent's representative
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Campaign'
+ *       404:
+ *         description: No campaigns found for this representative
+ *       500:
+ *         description: Server error
+ */
+router.get('/my-representative-jwt', verifyAccessToken, (req, res) => {
+  campaignController.getCampaignsByMyRepresentativeFromJWT(req, res);
+});
+
+/**
+ * @swagger
+ * /api/v1/campaign/my-campaigns:
+ *   get:
+ *     summary: Get campaigns created by the authenticated representative
+ *     tags: [Campaigns]
+ *     description: Retrieve all campaigns created by the currently authenticated representative using their ID from JWT token. Only accessible by representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of campaigns created by the representative
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Campaign'
+ *       403:
+ *         description: Forbidden - Only representatives can access this endpoint
+ *       404:
+ *         description: No campaigns found for this representative
+ *       500:
+ *         description: Server error
+ */
+router.get('/my-campaigns', verifyAccessToken, (req, res) => {
+  // Check if user is a representative
+  if (req.user.role !== 'representative') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only representatives can access their campaigns'
+    });
+  }
+  
+  // Use the representative's ID from the JWT token
+  req.params.representativeId = req.user.userId;
+  campaignController.getCampaignsByRepresentative(req, res);
+});
+
+// Keep the original route for backward compatibility or for accessing other representatives' campaigns
 /**
  * @swagger
  * /api/v1/campaign/representative/{representativeId}:

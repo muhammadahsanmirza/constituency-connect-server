@@ -44,46 +44,44 @@ const responseHandler = require('../utils/responseHandler');
  *       500:
  *         description: Server error
  */
+// Create a new complaint
 exports.createComplaint = async (req, res) => {
-    try {
-      const { userId, subject, category, description, complaintDate } = req.body;
-  
-      // Collect individual files
-      const attachments = [];
-      if (req.files['attachfile1']) {
-        attachments.push({
-          filePath: req.files['attachfile1'][0].path,
-          originalName: req.files['attachfile1'][0].originalname,
-        });
-      }
-      if (req.files['attachfile2']) {
-        attachments.push({
-          filePath: req.files['attachfile2'][0].path,
-          originalName: req.files['attachfile2'][0].originalname,
-        });
-      }
-      if (req.files['attachfile3']) {
-        attachments.push({
-          filePath: req.files['attachfile3'][0].path,
-          originalName: req.files['attachfile3'][0].originalname,
-        });
-      }
-  
-      const newComplaint = new Complaint({
-        userId,
-        subject,
-        category,
-        description,
-        complaintDate,
-        attachments,
-      });
-  
-      await newComplaint.save();
-      responseHandler.success(res, 'Complaint created successfully', newComplaint);
-    } catch (error) {
-      responseHandler.serverError(res, error.message);
+  try {
+    console.log('User from token:', req.user);
+    
+    const { title, description, category } = req.body;
+    
+    // Check if user is a constituent (complaints should be filed by constituents)
+    if (req.user.role !== 'constituent') {
+      console.log('Warning: Non-constituent trying to create complaint');
+      return responseHandler.forbidden(res, 'Only constituents can file complaints');
     }
-  };
+    
+    const constituent = req.user.userId; // Get the constituent ID from the authenticated user
+
+    // Create a new complaint object
+    const newComplaint = new Complaint({
+      title,
+      description,
+      category,
+      constituent,
+      status: 'pending' // Default status
+    });
+
+    // Handle image upload if provided
+    if (req.file) {
+      newComplaint.imagePath = req.file.path;
+    }
+
+    // Save the complaint to the database
+    await newComplaint.save();
+
+    responseHandler.success(res, 'Complaint filed successfully', newComplaint);
+  } catch (error) {
+    console.error('Complaint creation error:', error);
+    responseHandler.serverError(res, error.message);
+  }
+};
 
 /**
  * @swagger

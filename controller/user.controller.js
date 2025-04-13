@@ -102,12 +102,14 @@ exports.register = async (req, res) => {
     }
 
     // Check if a representative exists for the constituency
+    let representativeId = null;
     if (role === 'constituent') {
       const representative = await User.findOne({ role: 'representative', constituency });
       if (!representative) {
         return responseHandler.error(res, 'No representative found for the constituency');
       }
-      req.body.representative = representative._id;
+      representativeId = representative._id;
+      req.body.representative = representativeId;
     }
 
     // Hash the password
@@ -117,27 +119,31 @@ exports.register = async (req, res) => {
     const newUser = new User(req.body);
     await newUser.save();
 
-    // Generate JWT tokens with additional fields
-    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
+    // Create payload with all necessary information
+    const payload = { 
+      userId: newUser._id, 
+      name: newUser.name, 
+      email: newUser.email, 
+      role: newUser.role,
+      constituency: newUser.constituency 
+    };
+    
+    // Add representative ID to the payload for constituents
+    if (role === 'constituent' && representativeId) {
+      payload.representative = representativeId;
+      console.log('Adding representative ID to token:', representativeId);
+    }
+
+    // Generate JWT tokens with the complete payload
     const accessToken = jwt.sign(
-      { 
-        userId: newUser._id, 
-        name: newUser.name, 
-        email: newUser.email, 
-        role: newUser.role,
-        constituency: newUser.constituency 
-      }, 
-      process.env.JWT_SECRET, 
+      payload, 
+      process.env.JWT_ACCESS_SECRET, 
       { expiresIn: '1d' }
     );
     
-    // Using JWT_REFRESH_SECRET directly
+    // Include the same payload in refresh token
     const refreshToken = jwt.sign(
-      { 
-        userId: newUser._id, 
-        role: newUser.role,
-        constituency: newUser.constituency 
-      }, 
+      payload, 
       process.env.JWT_REFRESH_SECRET, 
       { expiresIn: '30d' }
     );
@@ -198,117 +204,76 @@ exports.register = async (req, res) => {
  *       500:
  *         description: Server error
  */
+// Login function - modify this part to include representative ID in the token
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return responseHandler.error(res, 'Invalid email or password');
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return responseHandler.error(res, 'Invalid email or password');
-    }
-
-    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
-    const accessToken = jwt.sign(
-      { 
-        userId: user._id, 
-        name: user.name, 
-        email: user.email, 
-        role: user.role,
-        constituency: user.constituency 
-      }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '1d' }
-    );
+    const { cnic, password } = req.body;
     
-    const refreshToken = jwt.sign(
-      { 
-        userId: user._id, 
-        role: user.role,
-        constituency: user.constituency 
-      }, 
-      process.env.JWT_REFRESH_SECRET, 
-      { expiresIn: '30d' }
-    );
-
-    responseHandler.success(res, 'Login successful', { accessToken, refreshToken });
+    // Find the user by CNIC
+    const user = await User.findOne({ cnic });
+    if (!user) {
+      return responseHandler.unauthorized(res, 'Invalid credentials');
+    }
+    
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return responseHandler.unauthorized(res, 'Invalid credentials');
+    }
+    
+    // Create token payload
+    const payload = {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      constituency: user.constituency
+    };
+    
+    // If user is a constituent, add representative ID to the payload
+    if (user.role === 'constituent' && user.representative) {
+      payload.representative = user.representative;
+    }
+    
+    // Generate tokens
+    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '1d' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    
+    responseHandler.success(res, 'Login successful', { 
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (error) {
+    console.error('Login error:', error);
     responseHandler.serverError(res, error.message);
   }
 };
 
-/**
- * @swagger
- * /api/v1/user/refresh-token:
- *   post:
- *     summary: Refresh access token
- *     tags: [Users]
- *     description: Get a new access token using a valid refresh token. Accessible by both constituents and representatives.
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: Token refreshed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                       description: New JWT token valid for 1 day
- *       401:
- *         description: Invalid or expired refresh token
- *       500:
- *         description: Server error
- */
-exports.refreshToken = async (req, res) => {
+// Also update the refresh token function to include representative ID
+exports.refreshToken = (req, res) => {
   try {
-    const userId = req.user.userId;
+    const payload = {
+      userId: req.user.userId,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      constituency: req.user.constituency
+    };
     
-    // Get user from database to ensure they still exist and get updated info
-    const user = await User.findById(userId);
-    if (!user) {
-      return responseHandler.unauthorized(res, 'User not found');
+    // If user is a constituent, add representative ID to the payload
+    if (req.user.role === 'constituent' && req.user.representative) {
+      payload.representative = req.user.representative;
     }
     
-    // Generate new access token
-    // Using JWT_SECRET instead of JWT_ACCESS_SECRET
-    const accessToken = jwt.sign(
-      { 
-        userId: user._id, 
-        name: user.name, 
-        email: user.email, 
-        role: user.role,
-        constituency: user.constituency 
-      }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '1d' }
-    );
+    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '1d' });
     
-    responseHandler.success(res, 'Access token refreshed successfully', { accessToken });
+    responseHandler.success(res, 'Token refreshed successfully', { accessToken });
   } catch (error) {
     responseHandler.serverError(res, error.message);
   }
