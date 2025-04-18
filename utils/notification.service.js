@@ -26,18 +26,19 @@ exports.getUserNotifications = async (userId, limit = 20, skip = 0) => {
     return await Notification.find({ recipient: userId })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate('relatedComplaint', 'title status');
   } catch (error) {
     console.error('Error fetching notifications:', error);
     throw error;
   }
 };
 
-// Mark notification as read
-exports.markAsRead = async (notificationId) => {
+// Mark notification as read - updated to check ownership
+exports.markAsRead = async (notificationId, userId) => {
   try {
-    return await Notification.findByIdAndUpdate(
-      notificationId,
+    return await Notification.findOneAndUpdate(
+      { _id: notificationId, recipient: userId },
       { isRead: true },
       { new: true }
     );

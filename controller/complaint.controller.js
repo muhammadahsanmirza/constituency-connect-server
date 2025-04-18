@@ -1,6 +1,7 @@
 const Complaint = require('../model/complaint.model');
 const responseHandler = require('../utils/responseHandler');
 const notificationService = require('../utils/notification.service');
+const pdfGenerator = require('../utils/pdfGenerator');
 
 exports.submitComplaint = async (req, res) => {
   try {
@@ -207,5 +208,58 @@ exports.deleteComplaint = async (req, res) => {
   } catch (error) {
     console.error('Error deleting complaint:', error);
     responseHandler.serverError(res, error.message);
+  }
+};
+
+// Download complaint as PDF
+exports.downloadComplaintPDF = async (req, res) => {
+  try {
+    console.log('PDF Download: Starting process');
+    const complaintId = req.params.id;
+    console.log(`PDF Download: Complaint ID - ${complaintId}`);
+    
+    // Find the complaint with populated constituent and representative
+    console.log('PDF Download: Fetching complaint data');
+    const complaint = await Complaint.findById(complaintId)
+      .populate('constituent', 'name email')
+      .populate('representative', 'name email');
+    
+    if (!complaint) {
+      console.log('PDF Download: Complaint not found');
+      return responseHandler.notFound(res, 'Complaint not found');
+    }
+    console.log(`PDF Download: Complaint found - ${complaint.title}`);
+
+    // Check if user has permission to view this complaint
+    console.log(`PDF Download: Checking permissions for user role ${req.user.role}`);
+    if (req.user.role === 'constituent' && complaint.constituent._id.toString() !== req.user.userId) {
+      console.log('PDF Download: Permission denied - constituent mismatch');
+      return responseHandler.forbidden(res, 'You do not have permission to download this complaint');
+    } else if (req.user.role === 'representative' && complaint.representative._id.toString() !== req.user.userId) {
+      console.log('PDF Download: Permission denied - representative mismatch');
+      return responseHandler.forbidden(res, 'This complaint is not assigned to you');
+    }
+    console.log('PDF Download: Permission check passed');
+    
+    // Try to generate and send the PDF
+    console.log('PDF Download: Starting PDF generation');
+    const result = await pdfGenerator.generateComplaintPDF(complaint, res);
+    console.log(`PDF Download: PDF generation result - ${result}`);
+    
+    // If PDF generation failed and no response has been sent yet
+    if (!result && !res.headersSent) {
+      console.log('PDF Download: PDF generation failed but no response sent yet');
+      responseHandler.serverError(res, 'Failed to generate PDF. Please try again later.');
+    }
+    
+  } catch (error) {
+    console.error('Error downloading complaint PDF:', error);
+    console.log(`PDF Download: Error caught - ${error.message}`);
+    if (!res.headersSent) {
+      console.log('PDF Download: Sending error response');
+      responseHandler.serverError(res, 'Error downloading PDF: ' + error.message);
+    } else {
+      console.log('PDF Download: Headers already sent, cannot send error response');
+    }
   }
 };

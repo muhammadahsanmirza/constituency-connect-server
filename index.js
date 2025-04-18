@@ -4,6 +4,11 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const { swaggerUi, specs } = require('./config/swagger');
 
 // Create HTTP server
 const app = express();
@@ -16,25 +21,17 @@ const io = socketIo(server, {
 });
 const PORT = process.env.SERVER_PORT || 5000;
 
-const cors = require('cors');
-
 const connectDB = require('./db/db.connection');
 
 // Connection to database
 connectDB();
 
-
-
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-const mongoose = require('mongoose');
-// const insertProvinces = require('./scripts/insertProvinces');
-// const insertDistricts = require('./scripts/insertDistricts');
-// const insertTehsils = require('./scripts/insertTehsils');
-// const insertCities = require('./scripts/insertCities');
-// const insertConstituencies = require('./scripts/insertConstituencies');
 mongoose.connection.on('connected', () => {
   console.log('Connected to MongoDB');
   // insertProvinces();
@@ -69,31 +66,14 @@ app.use('/api/v1/user', userRoutes);
 const complaintRoutes = require('./routes/complaint.routes');
 app.use('/api/v1/complaint', complaintRoutes);
 
-// Add this with your other route imports
 const campaignRoutes = require('./routes/campaign.routes');
 app.use('/api/v1/campaign', campaignRoutes);
 
-const path = require('path');
-
-// Make sure you have this line to serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 const notificationRoutes = require('./routes/notification.routes');
+app.use('/api/v1/notifications', notificationRoutes);
 
-// Add this near the top with other imports
-const { swaggerUi, specs } = require('./config/swagger');
-
-// Add this with your other middleware
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-
-
-
-
-
-
-
-//Server Start
+const feedbackRoutes = require('./routes/feedback.routes');
+app.use('/api/v1/feedback', feedbackRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

@@ -28,10 +28,14 @@ exports.markAsRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
     
-    const notification = await notificationService.markAsRead(notificationId);
+    if (!notificationId) {
+      return responseHandler.error(res, 'Notification ID is required');
+    }
+    
+    const notification = await notificationService.markAsRead(notificationId, req.user.userId);
     
     if (!notification) {
-      return responseHandler.notFound(res, 'Notification not found');
+      return responseHandler.notFound(res, 'Notification not found or not owned by you');
     }
     
     responseHandler.success(res, 'Notification marked as read', notification);
@@ -44,9 +48,11 @@ exports.markAsRead = async (req, res) => {
 // Mark all notifications as read
 exports.markAllAsRead = async (req, res) => {
   try {
-    await notificationService.markAllAsRead(req.user.userId);
+    const result = await notificationService.markAllAsRead(req.user.userId);
     
-    responseHandler.success(res, 'All notifications marked as read');
+    responseHandler.success(res, 'All notifications marked as read', { 
+      modifiedCount: result.modifiedCount 
+    });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
     responseHandler.serverError(res, error.message);

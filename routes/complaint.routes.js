@@ -354,4 +354,37 @@ router.put('/:id', verifyAccessToken, complaintController.updateComplaint);
  */
 router.delete('/:id', verifyAccessToken, complaintController.deleteComplaint);
 
+/**
+ * @swagger
+ * /api/v1/complaint/{id}/pdf:
+ *   get:
+ *     summary: Download complaint as PDF
+ *     tags: [Complaints]
+ *     description: Download a complaint in PDF format. Constituents can only download their own complaints. Representatives can only download complaints assigned to them.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The complaint ID
+ *     responses:
+ *       200:
+ *         description: PDF file
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Forbidden - Not authorized to download this complaint
+ *       404:
+ *         description: Complaint not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/:id/pdf', verifyAccessToken, complaintController.downloadComplaintPDF);
+
 module.exports = router;
