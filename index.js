@@ -2,7 +2,18 @@ require('dotenv').config();
 
 // Server Setup
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+// Create HTTP server
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: '*', // Update with your frontend URL in production
+    methods: ['GET', 'POST']
+  }
+});
 const PORT = process.env.SERVER_PORT || 5000;
 
 const cors = require('cors');
@@ -67,7 +78,7 @@ const path = require('path');
 // Make sure you have this line to serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
+const notificationRoutes = require('./routes/notification.routes');
 
 // Add this near the top with other imports
 const { swaggerUi, specs } = require('./config/swagger');
@@ -84,6 +95,30 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 //Server Start
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  
+  // Authenticate user and join their room
+  socket.on('authenticate', (token) => {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.join(decoded.userId);
+      console.log(`User ${decoded.userId} authenticated and joined room`);
+    } catch (error) {
+      console.error('Socket authentication error:', error);
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Make io accessible to our routes
+app.set('io', io);
+
+// Update server.listen instead of app.listen
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

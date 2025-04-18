@@ -1,7 +1,7 @@
 const Complaint = require('../model/complaint.model');
 const responseHandler = require('../utils/responseHandler');
+const notificationService = require('../utils/notification.service');
 
-// Submit a new complaint - only constituents can file complaints
 exports.submitComplaint = async (req, res) => {
   try {
     // Check if user is a constituent
@@ -120,7 +120,9 @@ exports.updateComplaint = async (req, res) => {
     const complaintId = req.params.id;
     
     // Find the complaint
-    const complaint = await Complaint.findById(complaintId);
+    const complaint = await Complaint.findById(complaintId)
+      .populate('constituent', 'name email');
+    
     if (!complaint) {
       return responseHandler.notFound(res, 'Complaint not found');
     }
@@ -135,6 +137,9 @@ exports.updateComplaint = async (req, res) => {
       return responseHandler.error(res, `Cannot update complaint that is already ${complaint.status}`);
     }
     
+    // Store the previous status for comparison
+    const previousStatus = complaint.status;
+    
     // Update complaint fields
     complaint.status = status || complaint.status;
     complaint.response = response || complaint.response;
@@ -142,6 +147,31 @@ exports.updateComplaint = async (req, res) => {
     
     // Save the updated complaint
     await complaint.save();
+    
+    // Create notification if status has changed
+    if (previousStatus !== complaint.status) {
+      const title = `Complaint Status Updated: ${complaint.title}`;
+      const message = `Your complaint "${complaint.title}" has been updated to ${complaint.status}${complaint.response ? '. Response: ' + complaint.response : ''}`;
+      
+      const notification = await notificationService.createNotification(
+        complaint.constituent._id,
+        'complaint_status_update',
+        title,
+        message,
+        complaint._id
+      );
+      
+      // Get the io instance
+      const io = req.app.get('io');
+      
+      // Emit to the constituent's room
+      if (io) {
+        io.to(complaint.constituent._id.toString()).emit('notification', {
+          type: 'status_update',
+          notification: notification
+        });
+      }
+    }
     
     responseHandler.success(res, 'Complaint updated successfully', complaint);
   } catch (error) {

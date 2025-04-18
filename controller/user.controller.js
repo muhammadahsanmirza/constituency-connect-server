@@ -204,13 +204,13 @@ exports.register = async (req, res) => {
  *       500:
  *         description: Server error
  */
-// Login function - modify this part to include representative ID in the token
 exports.login = async (req, res) => {
   try {
-    const { cnic, password } = req.body;
+    const { email, password } = req.body;
     
     // Find the user by CNIC
-    const user = await User.findOne({ cnic });
+    console.log("Login Attempt",req.body )
+    const user = await User.findOne({ email });
     if (!user) {
       return responseHandler.unauthorized(res, 'Invalid credentials');
     }
