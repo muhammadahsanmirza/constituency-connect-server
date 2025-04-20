@@ -12,28 +12,17 @@ exports.getConstituentComplaintStats = async (req, res) => {
       return responseHandler.forbidden(res, 'Only constituents can access this endpoint');
     }
 
-    // Find the constituent's complaints to get their representative
-    const userComplaints = await Complaint.find({ constituent: req.user.userId });
+    // Get the representative ID from the JWT token
+    const representativeId = req.user.representative;
     
-    if (!userComplaints || userComplaints.length === 0) {
-      return responseHandler.success(res, 'No complaints found', {
-        totalComplaints: 0,
-        newComplaints: 0,
-        inProgressComplaints: 0,
-        resolvedComplaints: 0
-      });
-    }
-
-    // Get the representative ID from the first complaint
-    // Assuming all complaints from a constituent go to the same representative
-    const representativeId = userComplaints[0].representative;
-
     if (!representativeId) {
       return responseHandler.success(res, 'No representative assigned yet', {
         totalComplaints: 0,
         newComplaints: 0,
         inProgressComplaints: 0,
-        resolvedComplaints: 0
+        resolvedComplaints: 0,
+        pendingComplaints: 0,
+        rejectedComplaints: 0
       });
     }
 
@@ -55,12 +44,22 @@ exports.getConstituentComplaintStats = async (req, res) => {
       representative: representativeId,
       status: 'resolved'
     });
+    const pendingComplaints = await Complaint.countDocuments({ 
+      representative: representativeId,
+      status: 'pending'
+    });
+    const rejectedComplaints = await Complaint.countDocuments({ 
+      representative: representativeId,
+      status: 'rejected'
+    });
 
     const stats = {
       totalComplaints,
       newComplaints,
       inProgressComplaints,
-      resolvedComplaints
+      resolvedComplaints,
+      pendingComplaints,
+      rejectedComplaints
     };
 
     responseHandler.success(res, 'Complaint statistics retrieved successfully', stats);
