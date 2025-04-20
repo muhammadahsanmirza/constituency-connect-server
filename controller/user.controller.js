@@ -278,3 +278,77 @@ exports.refreshToken = (req, res) => {
     responseHandler.serverError(res, error.message);
   }
 };
+
+// Add this new method to your existing user.controller.js file
+
+/**
+ * Get user profile
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+// Get user profile
+exports.getUserProfile = async (req, res) => {
+  try {
+    // Log the entire user object from the request
+    console.log('Auth user object from JWT:', req.user);
+    
+    // The user ID is available from the auth middleware
+    const userId = req.user.userId;
+    console.log('Extracted userId from JWT:', userId);
+    
+    if (!userId) {
+      console.log('No userId found in the token');
+      return responseHandler.unauthorized(res, 'User not authenticated');
+    }
+    
+    console.log('Attempting to find user with ID:', userId);
+    
+    // First, get the user without population to check what fields exist
+    const userDoc = await User.findById(userId).select('-password -__v');
+    
+    if (!userDoc) {
+      console.log('User not found in database for ID:', userId);
+      return responseHandler.notFound(res, 'User not found');
+    }
+    
+    // Create a query to populate only the fields that exist in the user document
+    let query = User.findById(userId).select('-password -__v');
+    
+    // Check each field and only populate if it exists and has a value
+    if (userDoc.province) {
+      query = query.populate('province', 'name code');
+    }
+    
+    if (userDoc.district) {
+      query = query.populate('district', 'name code province');
+    }
+    
+    if (userDoc.tehsil) {
+      query = query.populate('tehsil', 'name code district');
+    }
+    
+    if (userDoc.constituency) {
+      query = query.populate('constituency', 'name code district');
+    }
+    
+    if (userDoc.representative) {
+      query = query.populate('representative', 'name email mobile');
+    }
+    
+    // Execute the query with the appropriate populate calls
+    const user = await query.exec();
+    
+    console.log('User found:', {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+    
+    // Return the user profile
+    responseHandler.success(res, 'User profile retrieved successfully', user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    responseHandler.serverError(res, error.message);
+  }
+};

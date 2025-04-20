@@ -75,6 +75,12 @@ app.use('/api/v1/notifications', notificationRoutes);
 const feedbackRoutes = require('./routes/feedback.routes');
 app.use('/api/v1/feedback', feedbackRoutes);
 
+const statsRoutes = require('./routes/stats.routes');
+app.use('/api/v1/stats', statsRoutes);
+
+const interactionRoutes = require('./routes/interaction.routes');
+app.use('/api/v1/interactions', interactionRoutes);
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('New client connected');
