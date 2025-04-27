@@ -53,14 +53,73 @@ exports.getRepresentativeComplaints = async (req, res) => {
       return responseHandler.forbidden(res, 'Only representatives can access this endpoint');
     }
 
-    // Find all complaints assigned to this representative
-    const complaints = await Complaint.find({ representative: req.user.userId })
-      .populate('constituent', 'name email')
-      .sort({ createdAt: -1 });
+    const { page = 1, limit = 20, title, category, status, dateFilter } = req.query;
     
-    responseHandler.success(res, 'Complaints retrieved successfully', complaints);
+    // Build query object
+    const query = { representative: req.user.userId };
+    
+    // Add filters if provided
+    if (title) query.title = { $regex: title, $options: 'i' };
+    if (category) query.category = category;
+    if (status) query.status = status;
+    
+    // Date filtering
+    if (dateFilter) {
+      const now = new Date();
+      let startDate;
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case 'this-week':
+          startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'this-month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this-year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        query.createdAt = { $gte: startDate };
+      }
+    }
+
+    // Execute query with pagination and deep population
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { createdAt: -1 },
+      populate: {
+        path: 'constituent',
+        select: 'name email province district tehsil city address',
+        populate: [
+          { path: 'province', select: 'name' },
+          { path: 'district', select: 'name' },
+          { path: 'tehsil', select: 'name' }
+        ]
+      }
+    };
+
+    const result = await Complaint.paginate(query, options);
+    
+    responseHandler.success(res, 'Complaints retrieved successfully', {
+      complaints: result.docs,
+      pagination: {
+        total: result.totalDocs,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+        hasNextPage: result.hasNextPage,
+        hasPrevPage: result.hasPrevPage
+      }
+    });
   } catch (error) {
-    console.error('Error fetching representative complaints:', error);
+    console.error('Error getting representative complaints:', error);
     responseHandler.serverError(res, error.message);
   }
 };

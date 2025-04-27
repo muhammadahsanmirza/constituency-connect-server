@@ -70,14 +70,59 @@ router.post('/', verifyAccessToken, uploadFields, complaintController.submitComp
  * @swagger
  * /api/v1/complaint/representative:
  *   get:
- *     summary: Get complaints for a representative
+ *     summary: Get complaints for a representative 
  *     tags: [Complaints]
- *     description: Retrieve all complaints assigned to the authenticated representative. Only accessible by representatives. The representative ID is taken from the JWT token.
+ *     description: /api/v1/complaint/representative?title=road&category=infrastructure&status=pending&dateFilter=this-month&page=1&limit=20
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: Filter complaints by title (case-insensitive partial match)
+ *         example: road issue
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [infrastructure, education, healthcare, security, other]
+ *         description: Filter complaints by exact category
+ *         example: infrastructure
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, in-progress, resolved, rejected]
+ *         description: Filter complaints by status
+ *         example: pending
+ *       - in: query
+ *         name: dateFilter
+ *         schema:
+ *           type: string
+ *           enum: [today, this-week, this-month, this-year]
+ *         description: Filter complaints by predefined date ranges based on createdAt field
+ *         example: this-month
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of complaints per page
+ *         example: 10
  *     responses:
  *       200:
- *         description: A list of complaints assigned to the representative
+ *         description: Complaints retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -85,16 +130,64 @@ router.post('/', verifyAccessToken, uploadFields, complaintController.submitComp
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: Complaints retrieved successfully
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Complaint'
+ *                   type: object
+ *                   properties:
+ *                     complaints:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Complaint'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 120
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 50
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
  *       403:
- *         description: Forbidden - Only representatives can access this endpoint
+ *         description: Forbidden - User is not a representative
  *       500:
  *         description: Server error
+ *     x-code-samples:
+ *       - lang: url
+ *         source: |
+ *           # Basic request
+ *           /api/v1/complaint/representative
+ *           
+ *           # Filter by title
+ *           /api/v1/complaint/representative?title=road
+ *           
+ *           # Filter by category and status
+ *           /api/v1/complaint/representative?category=infrastructure&status=pending
+ *           
+ *           # Filter by predefined date range
+ *           /api/v1/complaint/representative?dateFilter=this-month
+ *           
+ *           # Pagination
+ *           /api/v1/complaint/representative?page=2&limit=10
+ *           
+ *           # All filters applied with pagination
+ *           /api/v1/complaint/representative?title=road&category=infrastructure&status=pending&dateFilter=this-month&page=1&limit=20
  */
 router.get('/representative', verifyAccessToken, complaintController.getRepresentativeComplaints);
 

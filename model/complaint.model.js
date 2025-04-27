@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const complaintSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   description: {
     type: String,
@@ -11,8 +13,8 @@ const complaintSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['infrastructure', 'education', 'healthcare', 'security', 'other'],
-    required: true
+    required: true,
+    enum: ['infrastructure', 'education', 'healthcare', 'security', 'other']
   },
   attachments: [{
     path: String,
@@ -40,4 +42,9 @@ const complaintSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Complaint', complaintSchema);
+// Apply the pagination plugin to the schema
+complaintSchema.plugin(mongoosePaginate);
+
+const Complaint = mongoose.model('Complaint', complaintSchema);
+
+module.exports = Complaint;
