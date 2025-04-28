@@ -132,11 +132,65 @@ exports.getConstituentComplaints = async (req, res) => {
       return responseHandler.forbidden(res, 'Only constituents can access this endpoint');
     }
 
-    // Find all complaints submitted by this constituent
-    const complaints = await Complaint.find({ constituent: req.user.userId })
-      .sort({ createdAt: -1 });
+    const { page = 1, limit = 20, title, category, status, dateFilter } = req.query;
     
-    responseHandler.success(res, 'Complaints retrieved successfully', complaints);
+    // Build query object
+    const query = { constituent: req.user.userId };
+    
+    // Add filters if provided
+    if (title) query.title = { $regex: title, $options: 'i' };
+    if (category) query.category = category;
+    if (status) query.status = status;
+    
+    // Date filtering
+    if (dateFilter) {
+      const now = new Date();
+      let startDate;
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case 'this-week':
+          startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'this-month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this-year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        query.createdAt = { $gte: startDate };
+      }
+    }
+
+    // Execute query with pagination
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'representative', select: 'name email' }
+      ]
+    };
+
+    const result = await Complaint.paginate(query, options);
+    
+    responseHandler.success(res, 'Complaints retrieved successfully', {
+      complaints: result.docs,
+      pagination: {
+        total: result.totalDocs,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+        hasNextPage: result.hasNextPage,
+        hasPrevPage: result.hasPrevPage
+      }
+    });
   } catch (error) {
     console.error('Error fetching constituent complaints:', error);
     responseHandler.serverError(res, error.message);

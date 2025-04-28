@@ -197,12 +197,96 @@ router.get('/representative', verifyAccessToken, complaintController.getRepresen
  *   get:
  *     summary: Get complaints submitted by a constituent
  *     tags: [Complaints]
- *     description: Retrieve all complaints submitted by the authenticated constituent. Only accessible by constituents.
+ *     description: Retrieve all complaints submitted by the authenticated constituent with filtering and pagination. Only accessible by constituents.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: Filter complaints by title (case-insensitive partial match)
+ *         example: road issue
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [infrastructure, education, healthcare, security, other]
+ *         description: Filter complaints by exact category
+ *         example: infrastructure
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, in-progress, resolved, rejected]
+ *         description: Filter complaints by status
+ *         example: pending
+ *       - in: query
+ *         name: dateFilter
+ *         schema:
+ *           type: string
+ *           enum: [today, this-week, this-month, this-year]
+ *         description: Filter complaints by predefined date ranges based on createdAt field
+ *         example: this-month
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of complaints per page
+ *         example: 20
  *     responses:
  *       200:
- *         description: A list of complaints submitted by the constituent
+ *         description: Complaints retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Complaints retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     complaints:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Complaint'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 15
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 1
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: false
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
  *       403:
  *         description: Forbidden - Only constituents can access this endpoint
  *       500:
