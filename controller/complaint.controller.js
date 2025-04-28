@@ -136,7 +136,6 @@ exports.getConstituentComplaints = async (req, res) => {
     
     // Build query object
     const query = { constituent: req.user.userId };
-    
     // Add filters if provided
     if (title) query.title = { $regex: title, $options: 'i' };
     if (category) query.category = category;

@@ -299,99 +299,219 @@ exports.getComplaintCategories = async (req, res) => {
 };
 
 // Get interaction statistics
+/**
+ * @swagger
+ * /api/v1/stats/interaction-stats:
+ *   get:
+ *     summary: Get interaction statistics for constituent/representative
+ *     tags: [Statistics]
+ *     description: Retrieve virtual meetup and physical interaction statistics. Accessible by both constituents and representatives.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Statistics retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     virtualMeetups:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                           count:
+ *                             type: number
+ *                     physicalInteractions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                           count:
+ *                             type: number
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Server error
+ */
 exports.getInteractionStats = async (req, res) => {
+    try {
+        // Verify user role
+        if (!['constituent', 'representative'].includes(req.user.role)) {
+            return responseHandler.forbidden(res, 'Access denied');
+        }
+
+        const { startDate, endDate } = req.query;
+        let query = {};
+
+        // Add date filtering if provided
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+
+        // Add user-specific filtering
+        if (req.user.role === 'constituent') {
+            query.constituent = req.user.userId;
+        } else {
+            query.representative = req.user.userId;
+        }
+
+        // Get virtual meetup stats
+        const virtualMeetups = await VirtualMeetup.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    date: "$_id",
+                    count: 1
+                }
+            }
+        ]);
+
+        // Get physical interaction stats
+        const physicalInteractions = await PhysicalInteraction.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    date: "$_id",
+                    count: 1
+                }
+            }
+        ]);
+
+        responseHandler.success(res, 'Statistics retrieved successfully', {
+            virtualMeetups,
+            physicalInteractions
+        });
+
+    } catch (error) {
+        console.error('Error fetching interaction stats:', error);
+        responseHandler.serverError(res, error.message);
+    }
+};
+
+// Get monthly complaint statistics
+exports.getMonthlyComplaintStats = async (req, res) => {
   try {
     // Check user role and get appropriate representative ID
     let representativeId;
     
     if (req.user.role === 'representative') {
-      representativeId = req.user.userId;
+      representativeId = new mongoose.Types.ObjectId(req.user.userId);
     } else if (req.user.role === 'constituent') {
-      // Find the constituent's complaints to get their representative
-      const userComplaints = await Complaint.find({ constituent: req.user.userId });
-      
-      if (!userComplaints || userComplaints.length === 0) {
-        return responseHandler.success(res, 'No complaints found', {
-          virtual: [],
-          physical: []
-        });
-      }
-      
-      // Get the representative ID from the first complaint
-      representativeId = userComplaints[0].representative;
-      
-      if (!representativeId) {
-        return responseHandler.success(res, 'No representative assigned yet', {
-          virtual: [],
-          physical: []
-        });
-      }
+      representativeId = new mongoose.Types.ObjectId(req.user.representative);
     } else {
       return responseHandler.forbidden(res, 'Unauthorized access');
     }
 
-    // Parse query parameters for date range
-    const { startDate, endDate } = req.query;
-    
-    let matchStage = { 
-      representative: mongoose.Types.ObjectId(representativeId),
-      status: { $in: ['scheduled', 'completed'] }
-    };
-    
-    // Set up date range if provided
-    if (startDate && endDate) {
-      matchStage.date = { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      };
-    }
+    // Get current date and calculate start date (6 months ago)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 6);
 
-    // Aggregate interactions by month and type
-    const interactions = await Interaction.aggregate([
-      { $match: matchStage },
-      { 
+    // Aggregate complaints by month and status
+    const stats = await Complaint.aggregate([
+      {
+        $match: {
+          representative: new mongoose.Types.ObjectId(representativeId),
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
         $group: {
           _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-            type: '$type'
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            status: "$status"
           },
           count: { $sum: 1 }
         }
       },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
+      {
+        $group: {
+          _id: {
+            year: "$_id.year",
+            month: "$_id.month"
+          },
+          stats: {
+            $push: {
+              status: "$_id.status",
+              count: "$count"
+            }
+          }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
     // Format the results
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Initialize arrays for each type
-    const virtualMeetups = [];
-    const physicalInteractions = [];
-    
-    // Process the aggregation results
-    interactions.forEach(item => {
+    const formattedStats = stats.map(item => {
       const monthLabel = `${monthNames[item._id.month - 1]} ${item._id.year}`;
-      
-      if (item._id.type === 'virtual') {
-        virtualMeetups.push({
-          month: monthLabel,
-          count: item.count
-        });
-      } else {
-        physicalInteractions.push({
-          month: monthLabel,
-          count: item.count
-        });
-      }
+      const result = {
+        month: monthLabel,
+        inProgress: 0,
+        newComplaints: 0,
+        resolved: 0
+      };
+
+      item.stats.forEach(stat => {
+        if (stat.status === 'in-progress') result.inProgress = stat.count;
+        if (stat.status === 'pending') result.newComplaints = stat.count;
+        if (stat.status === 'resolved') result.resolved = stat.count;
+      });
+
+      return result;
     });
 
-    responseHandler.success(res, 'Interaction statistics retrieved successfully', {
-      virtual: virtualMeetups,
-      physical: physicalInteractions
-    });
+    responseHandler.success(res, 'Monthly complaint statistics retrieved successfully', formattedStats);
   } catch (error) {
-    console.error('Error retrieving interaction statistics:', error);
+    console.error('Error retrieving monthly complaint statistics:', error);
     responseHandler.serverError(res, error.message);
   }
 };

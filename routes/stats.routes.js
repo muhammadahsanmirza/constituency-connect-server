@@ -130,4 +130,51 @@ router.get('/complaints/categories', verifyAccessToken, statsController.getCompl
  */
 router.get('/interactions', verifyAccessToken, statsController.getInteractionStats);
 
+/**
+ * @swagger
+ * /api/v1/stats/complaints/monthly:
+ *   get:
+ *     summary: Get monthly complaint statistics
+ *     tags: [Statistics]
+ *     description: Retrieve monthly complaint statistics showing new, in-progress, and resolved complaints.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Monthly complaint statistics retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       month:
+ *                         type: string
+ *                         example: Jan 2024
+ *                       inProgress:
+ *                         type: number
+ *                         example: 160
+ *                       newComplaints:
+ *                         type: number
+ *                         example: 280
+ *                       resolved:
+ *                         type: number
+ *                         example: 105
+ *       403:
+ *         description: Forbidden - Unauthorized access
+ *       500:
+ *         description: Server error
+ */
+router.get('/complaints/monthly', verifyAccessToken, statsController.getMonthlyComplaintStats);
+
 module.exports = router;
