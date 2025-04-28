@@ -322,3 +322,67 @@ exports.downloadComplaintPDF = async (req, res) => {
     }
   }
 };
+
+// Submit feedback for a complaint
+exports.submitFeedback = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const { feedback, rating } = req.body;
+    
+    // Validate input
+    if (!feedback || !rating) {
+      return responseHandler.badRequest(res, 'Feedback and rating are required');
+    }
+    
+    // Find the complaint
+    const complaint = await Complaint.findById(complaintId);
+    
+    if (!complaint) {
+      return responseHandler.notFound(res, 'Complaint not found');
+    }
+    
+    // Check if the user is the constituent who created the complaint
+    if (complaint.constituent.toString() !== req.user.userId) {
+      return responseHandler.forbidden(res, 'You can only submit feedback for your own complaints');
+    }
+    
+    // Check if the complaint status is resolved
+    if (complaint.status !== 'resolved') {
+      return responseHandler.badRequest(res, 'Feedback can only be submitted for resolved complaints');
+    }
+    
+    // Check if feedback has already been submitted
+    if (complaint.isFeedbackSubmitted) {
+      return responseHandler.badRequest(res, 'Feedback has already been submitted for this complaint');
+    }
+    
+    // Create a new feedback document
+    const newFeedback = new Feedback({
+      complaint: complaintId,
+      constituent: req.user.userId,
+      representative: complaint.representative,
+      feedback,
+      rating
+    });
+    
+    await newFeedback.save();
+    
+    // Update the complaint to mark feedback as submitted
+    complaint.isFeedbackSubmitted = true;
+    await complaint.save();
+    
+    // Send notification to representative
+    await notificationService.sendNotification({
+      recipient: complaint.representative,
+      title: 'New Feedback Received',
+      message: `Constituent has submitted feedback for complaint: ${complaint.title}`,
+      type: 'feedback',
+      relatedId: complaintId
+    });
+    
+    responseHandler.success(res, 'Feedback submitted successfully');
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    responseHandler.serverError(res, error.message);
+  }
+};

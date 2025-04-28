@@ -478,6 +478,66 @@ router.delete('/:id', verifyAccessToken, complaintController.deleteComplaint);
  *       500:
  *         description: Server error
  */
-router.get('/:id/pdf', verifyAccessToken, complaintController.downloadComplaintPDF);
+/**
+ * @swagger
+ * /api/v1/complaint/{complaintId}/feedback:
+ *   post:
+ *     summary: Submit feedback for a resolved complaint
+ *     tags: [Complaints]
+ *     description: Submit feedback for a resolved complaint. Only accessible by constituents for their own complaints.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: complaintId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The complaint ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - feedback
+ *               - rating
+ *             properties:
+ *               feedback:
+ *                 type: string
+ *                 description: Feedback text from the constituent
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 description: Rating from 1 to 5 stars
+ *     responses:
+ *       200:
+ *         description: Feedback submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Feedback submitted successfully
+ *       400:
+ *         description: Bad request - Invalid input or feedback already submitted
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       403:
+ *         description: Forbidden - Only constituents can submit feedback for their own complaints
+ *       404:
+ *         description: Complaint not found
+ *       500:
+ *         description: Server error
+ */
+// Submit feedback for a complaint
+router.post('/:complaintId/feedback', verifyAccessToken, complaintController.submitFeedback);
 
 module.exports = router;

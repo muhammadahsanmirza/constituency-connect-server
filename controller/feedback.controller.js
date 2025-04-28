@@ -59,6 +59,10 @@ exports.submitFeedback = async (req, res) => {
 
     await feedback.save();
 
+    // Update the complaint to mark feedback as submitted
+    complaint.isFeedbackSubmitted = true;
+    await complaint.save();
+
     responseHandler.success(res, 'Feedback submitted successfully', feedback);
   } catch (error) {
     console.error('Error submitting feedback:', error);
