@@ -250,45 +250,48 @@ exports.getComplaintCategories = async (req, res) => {
     let representativeId;
     
     if (req.user.role === 'representative') {
-      representativeId = req.user.userId;
+      representativeId = new mongoose.Types.ObjectId(req.user.userId);
     } else if (req.user.role === 'constituent') {
-      // Find the constituent's complaints to get their representative
-      const userComplaints = await Complaint.find({ constituent: req.user.userId });
-      
-      if (!userComplaints || userComplaints.length === 0) {
+      const complaint = await Complaint.findOne({ constituent: req.user.userId });
+      if (!complaint) {
         return responseHandler.success(res, 'No complaints found', []);
       }
-      
-      // Get the representative ID from the first complaint
-      representativeId = userComplaints[0].representative;
-      
-      if (!representativeId) {
-        return responseHandler.success(res, 'No representative assigned yet', []);
-      }
+      representativeId = new mongoose.Types.ObjectId(complaint.representative);
     } else {
       return responseHandler.forbidden(res, 'Unauthorized access');
     }
 
     // Aggregate complaints by category
     const categories = await Complaint.aggregate([
-      { 
-        $match: { 
-          representative: mongoose.Types.ObjectId(representativeId) 
-        } 
-      },
-      { 
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 }
+      {
+        $match: {
+          representative: representativeId
         }
       },
-      { $sort: { count: -1 } }
+      {
+        $group: {
+          _id: '$category',
+          Total: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          Category: '$_id',
+          Total: 1
+        }
+      },
+      {
+        $sort: {
+          Category: 1
+        }
+      }
     ]);
 
-    // Format the results
-    const formattedCategories = categories.map(item => ({
-      category: item._id,
-      count: item.count
+    // Format the response - no need for additional string manipulation
+    const formattedCategories = categories.map(cat => ({
+      Category: cat.Category,
+      Total: cat.Total
     }));
 
     responseHandler.success(res, 'Complaint categories retrieved successfully', formattedCategories);
