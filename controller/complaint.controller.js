@@ -221,7 +221,7 @@ exports.getComplaintById = async (req, res) => {
   }
 };
 
-// Update a complaint - only representatives can update their constituents' complaints
+// Update a complaint - only representatives can update status
 exports.updateComplaint = async (req, res) => {
   try {
     // Check if user is a representative
@@ -229,65 +229,40 @@ exports.updateComplaint = async (req, res) => {
       return responseHandler.forbidden(res, 'Only representatives can update complaints');
     }
 
+    const { id } = req.params;
     const { status, response } = req.body;
-    const complaintId = req.params.id;
-    
+
     // Find the complaint
-    const complaint = await Complaint.findById(complaintId)
-      .populate('constituent', 'name email');
+    const complaint = await Complaint.findById(id);
     
     if (!complaint) {
       return responseHandler.notFound(res, 'Complaint not found');
     }
-    
+
     // Check if the complaint is assigned to this representative
     if (complaint.representative.toString() !== req.user.userId) {
-      return responseHandler.forbidden(res, 'This complaint is not assigned to you');
+      return responseHandler.forbidden(res, 'You can only update complaints assigned to you');
     }
-    
-    // Check if complaint is already resolved or rejected
-    if (complaint.status === 'resolved' || complaint.status === 'rejected') {
-      return responseHandler.error(res, `Cannot update complaint that is already ${complaint.status}`);
+
+    // Check if status is valid
+    if (status && !['pending', 'resolved', 'rejected'].includes(status)) {
+      return responseHandler.error(res, 'Invalid status value');
     }
-    
-    // Store the previous status for comparison
-    const previousStatus = complaint.status;
-    
-    // Update complaint fields
-    complaint.status = status || complaint.status;
-    complaint.response = response || complaint.response;
-    complaint.updatedAt = Date.now();
-    
-    // Save the updated complaint
+
+    // Set isComplaintUpdated to true if status is changing from pending to resolved/rejected
+    if (complaint.status === 'pending' && (status === 'resolved' || status === 'rejected')) {
+      complaint.isComplaintUpdated = true;
+    }
+
+    // Update the complaint
+    if (status) complaint.status = status;
+    if (response) complaint.response = response;
+
     await complaint.save();
-    
-    // Create notification if status has changed
-    if (previousStatus !== complaint.status) {
-      const title = `Complaint Status Updated: ${complaint.title}`;
-      const message = `Your complaint "${complaint.title}" has been updated to ${complaint.status}${complaint.response ? '. Response: ' + complaint.response : ''}`;
-      
-      const notification = await notificationService.createNotification(
-        complaint.constituent._id,
-        'complaint_status_update',
-        title,
-        message,
-        complaint._id
-      );
-      
-      // Get the io instance
-      const io = req.app.get('io');
-      
-      // Emit to the constituent's room
-      if (io) {
-        io.to(complaint.constituent._id.toString()).emit('notification', {
-          type: 'status_update',
-          notification: notification
-        });
-      }
-    }
     
     responseHandler.success(res, 'Complaint updated successfully', complaint);
   } catch (error) {
+    console.error('Error updating complaint:', error);
     responseHandler.serverError(res, error.message);
   }
 };

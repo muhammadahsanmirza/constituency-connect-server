@@ -43,6 +43,10 @@ const complaintSchema = new mongoose.Schema({
   isFeedbackSubmitted: {
     type: Boolean,
     default: false
+  },
+  isComplaintUpdated: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
