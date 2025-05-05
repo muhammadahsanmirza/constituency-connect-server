@@ -261,6 +261,25 @@ exports.updateComplaint = async (req, res) => {
 
     await complaint.save();
     
+    // Create notification for the constituent
+    if (status || response) {
+      const notificationTitle = status 
+        ? `Complaint Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`
+        : 'Complaint Response Updated';
+        
+      const notificationMessage = status 
+        ? `Your complaint "${complaint.title}" has been ${status}.`
+        : `Your complaint "${complaint.title}" has received a new response.`;
+        
+      await notificationService.createNotification({
+        recipient: complaint.constituent,
+        type: 'complaint_status_update',
+        title: notificationTitle,
+        message: notificationMessage,
+        relatedComplaint: complaint._id
+      });
+    }
+    
     responseHandler.success(res, 'Complaint updated successfully', complaint);
   } catch (error) {
     console.error('Error updating complaint:', error);
