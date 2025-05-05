@@ -208,7 +208,8 @@ exports.getComplaintById = async (req, res) => {
     }
 
     // Check if user has permission to view this complaint
-    if (req.user.role === 'constituent' && complaint.constituent.toString() !== req.user.userId) {
+    console.log("Get Complaint by user ID->",req.user);
+    if (req.user.role !== 'constituent') {
       return responseHandler.forbidden(res, 'You do not have permission to view this complaint');
     } else if (req.user.role === 'representative' && complaint.representative.toString() !== req.user.userId) {
       return responseHandler.forbidden(res, 'This complaint is not assigned to you');
