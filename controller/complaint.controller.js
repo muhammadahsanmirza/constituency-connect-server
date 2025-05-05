@@ -271,6 +271,7 @@ exports.updateComplaint = async (req, res) => {
         ? `Your complaint "${complaint.title}" has been ${status}.`
         : `Your complaint "${complaint.title}" has received a new response.`;
         
+      // Fix: Pass the parameters correctly to createNotification
       await notificationService.createNotification({
         recipient: complaint.constituent,
         type: 'complaint_status_update',
