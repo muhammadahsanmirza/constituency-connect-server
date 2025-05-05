@@ -30,19 +30,21 @@ exports.createNotification = async (notificationData) => {
 /**
  * Get notifications for a user
  * @param {string} userId - User ID
- * @param {Object} options - Pagination options
+ * @param {number} limit - Number of items per page
+ * @param {number} skip - Number of items to skip
  * @returns {Promise<Array>} List of notifications
  */
-exports.getUserNotifications = async (userId, options = {}) => {
+exports.getUserNotifications = async (userId, limit, skip) => {
   try {
-    const { page = 1, limit = 10 } = options;
+    const page = Math.floor(skip / limit) + 1;
     
     return await Notification.paginate(
       { recipient: userId },
       {
         page,
         limit,
-        sort: { createdAt: -1 }
+        sort: { createdAt: -1 },
+        populate: 'relatedComplaint'
       }
     );
   } catch (error) {

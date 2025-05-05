@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoosePaginate = require('mongoose-paginate-v2');
 
-const notificationSchema = new Schema({
+const notificationSchema = new mongoose.Schema({
   recipient: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
@@ -21,17 +21,18 @@ const notificationSchema = new Schema({
     required: true
   },
   relatedComplaint: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Complaint'
   },
   isRead: {
     type: Boolean,
     default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Notification', notificationSchema);
+// Apply the pagination plugin to the schema
+notificationSchema.plugin(mongoosePaginate);
+
+const Notification = mongoose.model('Notification', notificationSchema);
+
+module.exports = Notification;
