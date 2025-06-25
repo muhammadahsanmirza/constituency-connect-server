@@ -22,7 +22,6 @@ const { verifyAccessToken } = require('../middlewares/auth.middleware');
  *               - topic
  *               - startTime
  *               - duration
- *               - password
  *             properties:
  *               topic:
  *                 type: string
@@ -39,14 +38,6 @@ const { verifyAccessToken } = require('../middlewares/auth.middleware');
  *                 minimum: 15
  *                 maximum: 300
  *                 description: Meeting duration in minutes (15-300)
- *               password:
- *                 type: string
- *                 description: Meeting password
- *               constituents:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Array of constituent user IDs to invite
  *     responses:
  *       200:
  *         description: Meeting created successfully
