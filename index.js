@@ -81,6 +81,11 @@ app.use('/api/v1/stats', statsRoutes);
 const interactionRoutes = require('./routes/interaction.routes');
 app.use('/api/v1/interactions', interactionRoutes);
 
+// In your app.js or server.js file
+const zoomRoutes = require('./routes/zoom.routes');
+app.use('/api/v1/zoom', zoomRoutes);
+
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('New client connected');

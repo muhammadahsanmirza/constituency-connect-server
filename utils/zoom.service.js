@@ -8,11 +8,11 @@ const ZOOM_API_BASE_URL = 'https://api.zoom.us/v2';
 // Generate Zoom JWT token
 const generateZoomJWT = () => {
   const payload = {
-    iss: process.env.ZOOM_API_KEY,
+    iss: process.env.ZOOM_CLIENT_ID,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 // Token expires in 1 hour
   };
 
-  return jwt.sign(payload, process.env.ZOOM_API_SECRET);
+  return jwt.sign(payload, process.env.ZOOM_CLIENT_SECRET);
 };
 
 // Create Zoom API client with authentication
