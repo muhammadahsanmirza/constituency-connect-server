@@ -65,9 +65,9 @@ exports.createInteraction = async (req, res) => {
 exports.getRepresentativeInteractions = async (req, res) => {
   try {
     // Check if user is a representative
-    if (req.user.role !== 'representative') {
-      return responseHandler.forbidden(res, 'Only representatives can access this endpoint');
-    }
+    // if (req.user.role !== 'representative') {
+    //   return responseHandler.forbidden(res, 'Only representatives can access this endpoint');
+    // }
 
     // Parse query parameters
     const { type, status, startDate, endDate } = req.query;
