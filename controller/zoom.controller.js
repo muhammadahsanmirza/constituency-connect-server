@@ -120,7 +120,7 @@ exports.getRepresentativeMeetings = async (req, res) => {
   }
 };
 
-// Get meetings for a constituent
+// Get meetings for a constituent - simplified to return only essential meeting info
 exports.getConstituentMeetings = async (req, res) => {
   try {
     logger.info("Fetching constituent Zoom meetings", {
@@ -139,35 +139,35 @@ exports.getConstituentMeetings = async (req, res) => {
       );
     }
 
-    // Query parameters for filtering
-    const { status, startDate, endDate } = req.query;
-
-    // Build query
-    const query = { constituents: req.user.userId };
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (startDate || endDate) {
-      query.startTime = {};
-      if (startDate) {
-        query.startTime.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.startTime.$lte = new Date(endDate);
-      }
-    }
+    // Build query - only get scheduled meetings with status=scheduled
+    const query = { 
+      status: "scheduled" // Default to scheduled meetings only
+    };
+    
+    // Note: We're not filtering by constituency since we want to show all scheduled meetings
 
     // Get meetings from database
     const meetings = await ZoomMeeting.find(query)
       .populate("representative", "name email")
       .sort({ startTime: 1 });
 
+    // Transform the data to include only necessary fields
+    const simplifiedMeetings = meetings.map(meeting => ({
+      topic: meeting.topic,
+      joinUrl: meeting.joinUrl,
+      startTime: meeting.startTime,
+      duration: meeting.duration,
+      representative: meeting.representative ? {
+        name: meeting.representative.name,
+        email: meeting.representative.email
+      } : null
+    }));
+
     logger.info("Constituent meetings fetched successfully", {
-      count: meetings.length,
+      count: simplifiedMeetings.length,
     });
-    responseHandler.success(res, "Meetings retrieved successfully", meetings);
+    
+    responseHandler.success(res, "Meetings retrieved successfully", simplifiedMeetings);
   } catch (error) {
     logger.error("Error fetching constituent meetings", {
       error: error.message,

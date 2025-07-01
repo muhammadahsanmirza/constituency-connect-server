@@ -118,30 +118,11 @@ router.get('/representative', verifyAccessToken, zoomController.getRepresentativ
  * @swagger
  * /api/v1/zoom/constituent:
  *   get:
- *     summary: Get all Zoom meetings for a constituent
+ *     summary: Get all scheduled Zoom meetings for a constituent
  *     tags: [Zoom]
- *     description: Retrieve all Zoom meetings the authenticated constituent is invited to with optional filtering.
+ *     description: Retrieve all scheduled Zoom meetings the authenticated constituent is invited to with simplified response format.
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [scheduled, completed, cancelled]
- *         description: Filter meetings by status
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter meetings starting on or after this date (YYYY-MM-DD)
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter meetings starting on or before this date (YYYY-MM-DD)
  *     responses:
  *       200:
  *         description: Meetings retrieved successfully
@@ -159,7 +140,36 @@ router.get('/representative', verifyAccessToken, zoomController.getRepresentativ
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/ZoomMeeting'
+ *                     type: object
+ *                     properties:
+ *                       topic:
+ *                         type: string
+ *                         description: Meeting topic/title
+ *                         example: "Weekly Constituency Meeting"
+ *                       joinUrl:
+ *                         type: string
+ *                         description: URL to join the Zoom meeting
+ *                         example: "https://zoom.us/j/123456789"
+ *                       startTime:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Meeting start time
+ *                         example: "2023-05-01T14:00:00Z"
+ *                       duration:
+ *                         type: number
+ *                         description: Meeting duration in minutes
+ *                         example: 60
+ *                       representative:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             description: Representative's name
+ *                             example: "John Doe"
+ *                           email:
+ *                             type: string
+ *                             description: Representative's email
+ *                             example: "john.doe@example.com"
  *       403:
  *         description: Forbidden - Only constituents can access this endpoint
  *       500:
