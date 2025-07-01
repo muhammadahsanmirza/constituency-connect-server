@@ -562,6 +562,7 @@ router.delete('/:id', verifyAccessToken, complaintController.deleteComplaint);
  *       500:
  *         description: Server error
  */
+router.get('/:id/pdf', verifyAccessToken, complaintController.downloadComplaintPDF);
 /**
  * @swagger
  * /api/v1/complaint/{complaintId}/feedback:
