@@ -64,16 +64,25 @@ exports.createInteraction = async (req, res) => {
 // Get all interactions for a representative
 exports.getRepresentativeInteractions = async (req, res) => {
   try {
-    // Check if user is a representative
-    // if (req.user.role !== 'representative') {
-    //   return responseHandler.forbidden(res, 'Only representatives can access this endpoint');
-    // }
-
     // Parse query parameters
     const { type, status, startDate, endDate } = req.query;
     
-    // Build query
-    const query = { representative: req.user.userId };
+    // Build query based on user role
+    let representativeId;
+    
+    if (req.user.role === 'constituent') {
+      // If user is a constituent, get their representative's ID from the JWT
+      if (!req.user.representative) {
+        return responseHandler.error(res, 'Representative information not found in your profile');
+      }
+      representativeId = req.user.representative;
+    } else {
+      // If user is a representative, use their own ID
+      representativeId = req.user.userId;
+    }
+    
+    // Build the query with the determined representative ID
+    const query = { representative: representativeId };
     
     if (type) {
       query.type = type;
@@ -116,9 +125,14 @@ exports.getInteraction = async (req, res) => {
       return responseHandler.notFound(res, 'Interaction not found');
     }
 
-    // Check permissions
+    // Check permissions based on user role
     if (req.user.role === 'representative' && interaction.representative.toString() !== req.user.userId) {
       return responseHandler.forbidden(res, 'You can only view your own interactions');
+    } else if (req.user.role === 'constituent') {
+      // If user is a constituent, check if the interaction belongs to their representative
+      if (!req.user.representative || interaction.representative.toString() !== req.user.representative) {
+        return responseHandler.forbidden(res, 'You can only view interactions from your representative');
+      }
     }
 
     responseHandler.success(res, 'Interaction retrieved successfully', interaction);
