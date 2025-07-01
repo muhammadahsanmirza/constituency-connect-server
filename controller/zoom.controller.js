@@ -128,7 +128,7 @@ exports.getConstituentMeetings = async (req, res) => {
     });
 
     // Check if user is a constituent
-    if (req.user.role !== "constituent") {
+    if (req.user.role == "constituent") {
       logger.warn("Unauthorized attempt to fetch constituent meetings", {
         userId: req.user.userId,
         role: req.user.role,
